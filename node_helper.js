@@ -15,38 +15,8 @@ const Sonos      = require(path.join(__dirname, "sonos.js"));
 
 const TOKEN_FILE = path.join(__dirname, ".token.json");
 
-// ── Fetch wrapper (tries node-fetch, falls back to native http/https) ─────────
-let _fetch;
-try {
-  _fetch = require(path.join(__dirname, "node_modules", "node-fetch"));
-  if (_fetch && _fetch.default) _fetch = _fetch.default;
-} catch (e) {
-  _fetch = (reqUrl, opts = {}) => new Promise((resolve, reject) => {
-    const parsed  = new URL(reqUrl);
-    const isHttps = parsed.protocol === "https:";
-    const lib     = isHttps ? https : http;
-    const req = lib.request({
-      hostname:           parsed.hostname,
-      port:               parsed.port || (isHttps ? 443 : 80),
-      path:               parsed.pathname + parsed.search,
-      method:             opts.method || "GET",
-      headers:            opts.headers || {},
-      rejectUnauthorized: false
-    }, (res) => {
-      let data = "";
-      res.on("data", chunk => data += chunk);
-      res.on("end", () => resolve({
-        ok:   res.statusCode >= 200 && res.statusCode < 300,
-        status: res.statusCode,
-        json: () => Promise.resolve(JSON.parse(data)),
-        text: () => Promise.resolve(data)
-      }));
-    });
-    req.on("error", reject);
-    if (opts.body) req.write(opts.body);
-    req.end();
-  });
-}
+// Node ≥18 global fetch (required by engines field)
+const _fetch = fetch;
 
 // ── NodeHelper ────────────────────────────────────────────────────────────────
 module.exports = NodeHelper.create({
@@ -329,6 +299,22 @@ module.exports = NodeHelper.create({
       case "SONOS_REDISCOVER":
         await this._sonosDiscover();
         break;
+
+      case "GET_PLAYLISTS":
+        await this._spotifyGetPlaylists();
+        break;
+
+      case "PLAY_PLAYLIST": {
+        const { playlistUri } = payload;
+        let deviceId = null;
+        if (this._activeGroupId) {
+          const g = this._findGroup(this._activeGroupId);
+          if (g) deviceId = await this._spotifyDeviceId(g.name);
+        }
+        if (!deviceId) deviceId = await this._spotifyActiveDeviceId();
+        await this._spotifyPlayContext(playlistUri, deviceId);
+        break;
+      }
 
       // Add a room to the currently active group (multi-room)
       case "SONOS_GROUP_ADD": {
@@ -700,6 +686,44 @@ module.exports = NodeHelper.create({
     }
   },
 
+  async _spotifyGetPlaylists() {
+    const token = await this._getToken();
+    if (!token) return;
+    try {
+      const res = await _fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const playlists = (data.items || []).map(p => ({
+        id:    p.id,
+        name:  p.name,
+        uri:   p.uri,
+        image: p.images && p.images[0] ? p.images[0].url : null
+      }));
+      this.sendSocketNotification("PLAYLISTS_RECEIVED", playlists);
+    } catch (e) {
+      console.error("[MMM-SpotifySonos] Playlists error:", e.message);
+    }
+  },
+
+  async _spotifyPlayContext(contextUri, deviceId) {
+    const token = await this._getToken();
+    if (!token) return;
+    try {
+      const url = deviceId
+        ? `https://api.spotify.com/v1/me/player/play?device_id=${encodeURIComponent(deviceId)}`
+        : "https://api.spotify.com/v1/me/player/play";
+      await _fetch(url, {
+        method:  "PUT",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body:    JSON.stringify({ context_uri: contextUri })
+      });
+    } catch (e) {
+      console.error("[MMM-SpotifySonos] Play context error:", e.message);
+    }
+  },
+
   // ── OAuth token management ────────────────────────────────────────────────
   async _getToken() {
     if (this.accessToken && Date.now() < this.tokenExpiry - 60000) return this.accessToken;
@@ -748,7 +772,9 @@ module.exports = NodeHelper.create({
     const scopes = [
       "user-read-playback-state",
       "user-modify-playback-state",
-      "user-read-currently-playing"
+      "user-read-currently-playing",
+      "playlist-read-private",
+      "playlist-read-collaborative"
     ].join(" ");
 
     const authUrl =

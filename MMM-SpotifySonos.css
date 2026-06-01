@@ -166,8 +166,21 @@
   background: rgba(29,185,84,0.35);
 }
 
-.ssw-btn-sonos {
+.ssw-btn-playlists {
   margin-left: auto;
+  font-size: 13px;
+  opacity: 0.6;
+  transition: opacity 0.2s, background 0.15s;
+}
+
+.ssw-btn-playlists.active {
+  opacity: 1;
+  background: var(--ss-green-dim);
+  border-color: rgba(29,185,84,0.4);
+  color: var(--ss-green);
+}
+
+.ssw-btn-sonos {
   font-size: 13px;
   opacity: 0.6;
   transition: opacity 0.2s, background 0.15s;
@@ -402,6 +415,65 @@
   pointer-events: none;
 }
 
+/* ── Material Icons inside buttons ──────────────────────── */
+.ssw-btn .material-icons {
+  font-size: 20px;
+  line-height: 1;
+  display: block;
+}
+
+.ssw-btn-play .material-icons  { font-size: 22px; }
+.ssw-btn-vol .material-icons   { font-size: 18px; }
+.ssw-btn-group .material-icons { font-size: 16px; }
+
+/* ── Playlist Panel ──────────────────────────────────────── */
+.ssw-playlist-panel {
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  max-height: 320px;
+  overflow-y: auto;
+  animation: ssSlideIn 0.2s ease;
+}
+
+.ssw-playlist-panel.panel-above {
+  order: -1;
+  animation: ssSlideInUp 0.2s ease;
+}
+
+.ssw-playlist-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--ss-border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ssw-playlist-row:last-child {
+  border-bottom: none;
+}
+
+.ssw-playlist-row:active {
+  background: var(--ss-dimmer);
+}
+
+.ssw-playlist-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  background: var(--ss-dimmer) center/cover no-repeat;
+  flex-shrink: 0;
+}
+
+.ssw-playlist-name {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ── Big Cover mode (big_cover: true) ────────────────────── */
 .ssw--big-cover {
   width: 300px;
@@ -426,4 +498,129 @@
 
 .ssw--big-cover .ssw-info {
   padding: 12px 14px 14px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Theme: black_white — transparent surfaces, outlines only
+   ══════════════════════════════════════════════════════════ */
+
+/* Re-map all colour tokens to monochrome */
+.ssw--bw {
+  --ss-green:     #ffffff;
+  --ss-green-dim: rgba(255,255,255,0.06);
+  --ss-dim:       rgba(255,255,255,0.35);
+  --ss-dimmer:    rgba(255,255,255,0.05);
+  --ss-surface:   transparent;
+  --ss-border:    rgba(255,255,255,0.18);
+}
+
+/* Card + panels — fully transparent, no blur */
+.ssw--bw .ssw-card,
+.ssw--bw .ssw-sonos-panel,
+.ssw--bw .ssw-playlist-panel {
+  background:      transparent;
+  backdrop-filter: none;
+  border-color:    rgba(255,255,255,0.18);
+}
+
+/* Album cover — greyscale + dimmed */
+.ssw--bw .ssw-cover,
+.ssw--bw .ssw-playlist-img {
+  filter: grayscale(100%) brightness(0.55);
+}
+
+/* Playing cover — thin white outline, no green glow */
+.ssw--bw .ssw-cover.playing {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.5);
+  animation:  none;
+}
+
+/* Progress track — slightly visible */
+.ssw--bw .ssw-prog-bg {
+  background: rgba(255,255,255,0.12);
+}
+
+/* Progress fill — white */
+.ssw--bw .ssw-prog-fill {
+  background: rgba(255,255,255,0.65);
+}
+
+/* All buttons — transparent, dim outline */
+.ssw--bw .ssw-btn {
+  background:   transparent;
+  border-color: rgba(255,255,255,0.18);
+  color:        rgba(255,255,255,0.55);
+}
+
+.ssw--bw .ssw-btn:active {
+  background: rgba(255,255,255,0.07);
+}
+
+/* Play button — slightly more prominent */
+.ssw--bw .ssw-btn-play {
+  background:   transparent;
+  border-color: rgba(255,255,255,0.38);
+  color:        #ffffff;
+}
+
+.ssw--bw .ssw-btn-play:active {
+  background: rgba(255,255,255,0.08);
+}
+
+/* Playlist / Sonos buttons — active state */
+.ssw--bw .ssw-btn-playlists.active,
+.ssw--bw .ssw-btn-sonos.active {
+  background:   rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.38);
+  color:        #ffffff;
+}
+
+/* Active zone row — barely-there tint */
+.ssw--bw .ssw-zone-row.active {
+  background: rgba(255,255,255,0.04);
+}
+
+/* Active zone name — white */
+.ssw--bw .ssw-zone-row.active .ssw-zone-name {
+  color:       #ffffff;
+  font-weight: 400;
+}
+
+/* Active indicator dot — solid white, no pulse */
+.ssw--bw .ssw-zone-row.active .ssw-zone-name::before {
+  background:  #ffffff;
+  border-color: #ffffff;
+  box-shadow:  none;
+  animation:   none;
+}
+
+/* Group (&) button — white outline when grouped */
+.ssw--bw .ssw-btn-group.grouped {
+  background:   rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.35);
+  color:        #ffffff;
+}
+
+/* Grouped row — white left accent */
+.ssw--bw .ssw-zone-row.grouped {
+  border-left-color: rgba(255,255,255,0.22);
+}
+
+.ssw--bw .ssw-zone-row.grouped .ssw-zone-name {
+  color: rgba(255,255,255,0.45);
+}
+
+.ssw--bw .ssw-zone-row.grouped .ssw-zone-name::before {
+  background:   rgba(255,255,255,0.28);
+  border-color: rgba(255,255,255,0.38);
+}
+
+/* Grouped-with label */
+.ssw--bw .ssw-group-with {
+  color: rgba(255,255,255,0.28);
+}
+
+/* Playlist row tap */
+.ssw--bw .ssw-playlist-row:active {
+  background: rgba(255,255,255,0.05);
 }
