@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "[pre-push] Deploying to Raspberry Pi before push..."
+bash "$(git rev-parse --show-toplevel)/deploy.sh"

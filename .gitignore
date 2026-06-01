@@ -1,0 +1,6 @@
+# Default ignored files
+/.idea/
+/.claude/
+node_modules/
+.token.json
+.ssl-*.pem

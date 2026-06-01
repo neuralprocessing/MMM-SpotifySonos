@@ -1,0 +1,429 @@
+/* ═══════════════════════════════════════════════════════════
+   MMM-SpotifySonos — Dark / Refined / Touch-optimized
+   ═══════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;600&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  --ss-green:     #1db954;
+  --ss-green-dim: rgba(29, 185, 84, 0.18);
+  --ss-white:     #ffffff;
+  --ss-dim:       rgba(255,255,255,0.45);
+  --ss-dimmer:    rgba(255,255,255,0.12);
+  --ss-surface:   rgba(255,255,255,0.05);
+  --ss-border:    rgba(255,255,255,0.08);
+  --ss-radius:    12px;
+  --ss-font:      'DM Sans', sans-serif;
+  --ss-mono:      'DM Mono', monospace;
+}
+
+/* ── Wrapper ─────────────────────────────────────────────── */
+/* display:inline-flex lets MagicMirror's text-align:center center this module.
+   Never use position, float, or fixed width here — those break MMM's layout. */
+.ssw {
+  font-family: var(--ss-font);
+  color: var(--ss-white);
+  display: inline-flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 320px;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  text-align: left;  /* reset text-align so inner text isn't centered */
+}
+
+/* ── Player Card ─────────────────────────────────────────── */
+.ssw-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px;
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  backdrop-filter: blur(8px);
+}
+
+/* ── Cover Art ───────────────────────────────────────────── */
+.ssw-cover-wrap {
+  flex-shrink: 0;
+}
+
+.ssw-cover {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  background: var(--ss-dimmer) center/cover no-repeat;
+  overflow: hidden;
+  transition: box-shadow 0.4s ease;
+}
+
+.ssw-cover.playing {
+  box-shadow: 0 0 0 2px var(--ss-green), 0 4px 20px rgba(29,185,84,0.3);
+  animation: ssGlow 8s linear infinite;
+}
+
+@keyframes ssGlow {
+  0%,100% { box-shadow: 0 0 0 2px var(--ss-green), 0 4px 20px rgba(29,185,84,0.3); }
+  50%      { box-shadow: 0 0 0 2px var(--ss-green), 0 6px 28px rgba(29,185,84,0.5); }
+}
+
+/* ── Track Info ──────────────────────────────────────────── */
+.ssw-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ssw-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ssw-artist {
+  font-size: 12px;
+  color: var(--ss-dim);
+  font-weight: 300;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Progress Bar ────────────────────────────────────────── */
+.ssw-prog-wrap {
+  margin-top: 6px;
+}
+
+.ssw-prog-bg {
+  width: 100%;
+  height: 3px;
+  background: var(--ss-dimmer);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ssw-prog-fill {
+  height: 100%;
+  background: var(--ss-green);
+  border-radius: 2px;
+  transition: width 0.9s linear;
+}
+
+.ssw-time-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--ss-mono);
+  font-size: 10px;
+  color: var(--ss-dim);
+  margin-top: 3px;
+}
+
+/* ── Controls ────────────────────────────────────────────── */
+.ssw-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.ssw-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ss-dimmer);
+  border: 1px solid var(--ss-border);
+  color: var(--ss-white);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 7px 10px;
+  min-width: 36px;
+  min-height: 36px;
+  transition: background 0.15s, transform 0.1s, border-color 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ssw-btn:active {
+  transform: scale(0.91);
+  background: rgba(255,255,255,0.2);
+}
+
+.ssw-btn-play {
+  background: var(--ss-green-dim);
+  border-color: rgba(29,185,84,0.4);
+  color: var(--ss-green);
+  font-size: 16px;
+  padding: 7px 13px;
+}
+
+.ssw-btn-play:active {
+  background: rgba(29,185,84,0.35);
+}
+
+.ssw-btn-sonos {
+  margin-left: auto;
+  font-size: 13px;
+  opacity: 0.6;
+  transition: opacity 0.2s, background 0.15s;
+}
+
+.ssw-btn-sonos.active {
+  opacity: 1;
+  background: var(--ss-green-dim);
+  border-color: rgba(29,185,84,0.4);
+  color: var(--ss-green);
+}
+
+/* ── Sonos Panel ─────────────────────────────────────────── */
+.ssw-sonos-panel {
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  animation: ssSlideIn 0.2s ease;
+  /* No position:relative, no z-index, no width — inherits from .ssw flex child */
+}
+
+@keyframes ssSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Panel above (for lower_* positions) — slides up */
+.ssw-sonos-panel.panel-above {
+  order: -1;  /* flex order: puts panel above card without DOM reorder needed */
+  animation: ssSlideInUp 0.2s ease;
+}
+
+@keyframes ssSlideInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Sonos Header ────────────────────────────────────────── */
+.ssw-sonos-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px 7px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  color: var(--ss-dim);
+  border-bottom: 1px solid var(--ss-border);
+  text-transform: uppercase;
+}
+
+.ssw-sonos-empty {
+  padding: 14px;
+  font-size: 12px;
+  color: var(--ss-dim);
+  text-align: center;
+  font-style: italic;
+}
+
+/* ── Zone Row ────────────────────────────────────────────── */
+.ssw-zone-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--ss-border);
+  transition: background 0.15s;
+  gap: 8px;
+}
+
+.ssw-zone-row:last-child {
+  border-bottom: none;
+}
+
+.ssw-zone-row.active {
+  background: var(--ss-green-dim);
+}
+
+.ssw-zone-name-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.ssw-zone-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 4px 0;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.ssw-zone-row.active .ssw-zone-name {
+  color: var(--ss-green);
+  font-weight: 600;
+}
+
+.ssw-zone-name::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid var(--ss-dim);
+  margin-right: 10px;
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.ssw-zone-row.active .ssw-zone-name::before {
+  background: var(--ss-green);
+  border-color: var(--ss-green);
+  box-shadow: 0 0 6px rgba(29,185,84,0.6);
+  animation: ssPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ssPulse {
+  0%,100% { box-shadow: 0 0 5px rgba(29,185,84,0.5); }
+  50%      { box-shadow: 0 0 10px rgba(29,185,84,0.9); }
+}
+
+/* ── Volume + Badge ──────────────────────────────────────── */
+.ssw-vol-row {
+  display: flex;
+  gap: 5px;
+}
+
+.ssw-btn-vol {
+  font-size: 16px;
+  font-weight: 300;
+  padding: 5px 9px;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 6px;
+  opacity: 0.7;
+}
+
+.ssw-btn-vol:hover  { opacity: 1; }
+.ssw-btn-vol:active { opacity: 1; transform: scale(0.9); }
+
+.ssw-group-badge {
+  font-family: var(--ss-mono);
+  font-size: 10px;
+  background: rgba(29,185,84,0.15);
+  color: var(--ss-green);
+  border: 1px solid rgba(29,185,84,0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Refresh Button ──────────────────────────────────────── */
+.ssw-btn-refresh {
+  font-size: 13px;
+  padding: 2px 7px;
+  min-width: 26px;
+  min-height: 26px;
+  opacity: 0.5;
+  border-radius: 5px;
+}
+
+.ssw-btn-refresh:hover { opacity: 1; }
+
+/* ── Group (&) Button ────────────────────────────────────── */
+.ssw-btn-group {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 7px;
+  min-width: 28px;
+  min-height: 28px;
+  border-radius: 6px;
+  opacity: 0.35;
+  font-family: var(--ss-mono);
+  transition: opacity 0.2s, background 0.15s, border-color 0.15s;
+}
+
+/* Active group exists → show & as tappable */
+.ssw-zone-row:not(.active) .ssw-btn-group {
+  opacity: 0.5;
+}
+
+/* This room is grouped with the active room */
+.ssw-btn-group.grouped {
+  opacity: 1;
+  background: var(--ss-green-dim);
+  border-color: rgba(29,185,84,0.4);
+  color: var(--ss-green);
+}
+
+.ssw-btn-group:active {
+  transform: scale(0.91);
+}
+
+/* Grouped room row — subtle green left border as visual indicator */
+.ssw-zone-row.grouped {
+  border-left: 3px solid rgba(29,185,84,0.5);
+  padding-left: 11px;  /* compensate for border */
+}
+
+.ssw-zone-row.grouped .ssw-zone-name {
+  color: rgba(29,185,84,0.8);
+}
+
+.ssw-zone-row.grouped .ssw-zone-name::before {
+  background: rgba(29,185,84,0.4);
+  border-color: rgba(29,185,84,0.6);
+}
+
+/* ── Grouped-with label (↳ Küche) ───────────────────────── */
+.ssw-group-with {
+  font-size: 9px;
+  color: rgba(29,185,84,0.6);
+  font-family: var(--ss-mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+/* ── Disabled buttons ────────────────────────────────────── */
+.ssw-btn.disabled,
+.ssw-btn:disabled {
+  opacity: 0.18;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ── Big Cover mode (big_cover: true) ────────────────────── */
+.ssw--big-cover {
+  width: 300px;
+}
+
+.ssw--big-cover .ssw-card {
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ssw--big-cover .ssw-cover-wrap {
+  width: 100%;
+}
+
+.ssw--big-cover .ssw-cover {
+  width: 300px;
+  height: 300px;
+  border-radius: var(--ss-radius) var(--ss-radius) 0 0;
+}
+
+.ssw--big-cover .ssw-info {
+  padding: 12px 14px 14px;
+}

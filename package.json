@@ -1,0 +1,20 @@
+{
+  "name": "mmm-spotifysonos",
+  "version": "1.0.0",
+  "description": "MagicMirror² module – combined Spotify player and Sonos speaker control",
+  "main": "MMM-SpotifySonos.js",
+  "scripts": {
+    "test":    "node --test test/sonos.test.js",
+    "test:watch": "node --test --watch test/sonos.test.js",
+    "deploy":  "bash deploy.sh",
+    "prepare": "git config core.hooksPath .githooks"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  },
+  "keywords": ["MagicMirror", "Spotify", "Sonos"],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
