@@ -9,6 +9,9 @@ Module.register("MMM-SpotifySonos", {
     showProgressBar: true,
     showCoverArt:    true,
     big_cover:       false,
+    theme:           "",       // "" = default green-on-dark  |  "black_white" = monochrome outlines
+    materialIcons:   false,
+    icons:           {},   // override individual icons; see README for keys
     callbackUrl:     "https://127.0.0.1:8888/callback",
     authPort:        8888,
     // sslCert:      "/etc/ssl/certs/my.crt",
@@ -24,11 +27,21 @@ Module.register("MMM-SpotifySonos", {
   groups:         [],
   activeGroup:    null,   // group.id of the currently active room
   showSonos:      false,
+  showPlaylists:  false,
+  playlists:      [],
   _progressTimer: null,
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   start() {
     Log.info("MMM-SpotifySonos started");
+
+    if (this.config.materialIcons) {
+      const link = document.createElement("link");
+      link.rel  = "stylesheet";
+      link.href = "https://fonts.googleapis.com/icon?family=Material+Icons";
+      document.head.appendChild(link);
+    }
+
     this.sendSocketNotification("INIT", this.config);
     setInterval(() => this.sendSocketNotification("GET_SPOTIFY"), this.config.pollInterval);
     setInterval(() => this.sendSocketNotification("GET_ZONES"),   this.config.sonosRefresh);
@@ -47,7 +60,9 @@ Module.register("MMM-SpotifySonos", {
   // ── Full DOM rebuild ───────────────────────────────────────────────────────
   getDom() {
     const wrap = document.createElement("div");
-    wrap.className = "ssw" + (this.config.big_cover ? " ssw--big-cover" : "");
+    wrap.className = "ssw" +
+      (this.config.big_cover ? " ssw--big-cover" : "") +
+      (this.config.theme === "black_white" ? " ssw--bw" : "");
 
     const card = document.createElement("div");
     card.className = "ssw-card";
@@ -109,31 +124,86 @@ Module.register("MMM-SpotifySonos", {
 
     const controls = document.createElement("div");
     controls.className = "ssw-controls";
-    const prevBtn = this._btn("⏮", "Previous track", () => this.sendSocketNotification("PREV"));
-    const playBtn = this._btn(this.isPlaying ? "⏸" : "▶", "Play / Pause", () =>
+    const prevBtn = this._btn(this._icon("prev"), "Previous track", () => this.sendSocketNotification("PREV"));
+    const playBtn = this._btn(this._icon(this.isPlaying ? "pause" : "play"), "Play / Pause", () =>
       this.sendSocketNotification(this.isPlaying ? "PAUSE" : "PLAY"));
     playBtn.className += " ssw-btn-play";
     playBtn.id = "ssw-play-btn";
-    const nextBtn = this._btn("⏭", "Next track", () => this.sendSocketNotification("NEXT"));
-    const sonosBtn = this._btn("🔊", "Choose speaker", () => {
+    const nextBtn = this._btn(this._icon("next"), "Next track", () => this.sendSocketNotification("NEXT"));
+    const playlistBtn = this._btn(this._icon("playlists"), "Browse playlists", () => {
+      this.showPlaylists = !this.showPlaylists;
+      if (this.showPlaylists) {
+        this.showSonos = false;
+        this.sendSocketNotification("GET_PLAYLISTS");
+      }
+      this.updateDom();
+    });
+    playlistBtn.className += " ssw-btn-playlists" + (this.showPlaylists ? " active" : "");
+
+    const sonosBtn = this._btn(this._icon("speaker"), "Choose speaker", () => {
       this.showSonos = !this.showSonos;
+      if (this.showSonos) this.showPlaylists = false;
       this.updateDom();
     });
     sonosBtn.className += " ssw-btn-sonos" + (this.showSonos ? " active" : "");
+
     controls.appendChild(prevBtn);
     controls.appendChild(playBtn);
     controls.appendChild(nextBtn);
+    controls.appendChild(playlistBtn);
     controls.appendChild(sonosBtn);
     info.appendChild(controls);
     card.appendChild(info);
     wrap.appendChild(card);
 
-    if (this.showSonos) {
-      const panel = this._buildSonosPanel();
-      wrap.appendChild(panel);
-    }
+    if (this.showPlaylists) wrap.appendChild(this._buildPlaylistPanel());
+    if (this.showSonos)     wrap.appendChild(this._buildSonosPanel());
 
     return wrap;
+  },
+
+  // ── Playlist panel ─────────────────────────────────────────────────────────
+  _buildPlaylistPanel() {
+    const panel = document.createElement("div");
+    panel.className = "ssw-playlist-panel" + (this.config.panelAbove ? " panel-above" : "");
+
+    const header = document.createElement("div");
+    header.className = "ssw-sonos-header";
+    header.innerText = "PLAYLISTS";
+    panel.appendChild(header);
+
+    if (this.playlists.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "ssw-sonos-empty";
+      empty.innerText = "Loading playlists…";
+      panel.appendChild(empty);
+      return panel;
+    }
+
+    this.playlists.forEach(pl => {
+      const row = document.createElement("div");
+      row.className = "ssw-playlist-row";
+
+      const img = document.createElement("div");
+      img.className = "ssw-playlist-img";
+      if (pl.image) img.style.backgroundImage = `url(${pl.image})`;
+      row.appendChild(img);
+
+      const name = document.createElement("span");
+      name.className = "ssw-playlist-name";
+      name.innerText = pl.name;
+      row.appendChild(name);
+
+      row.addEventListener("click", () => {
+        this.sendSocketNotification("PLAY_PLAYLIST", { playlistUri: pl.uri });
+        this.showPlaylists = false;
+        this.updateDom();
+      });
+
+      panel.appendChild(row);
+    });
+
+    return panel;
   },
 
   // ── Sonos panel ────────────────────────────────────────────────────────────
@@ -145,7 +215,7 @@ Module.register("MMM-SpotifySonos", {
     const header = document.createElement("div");
     header.className = "ssw-sonos-header";
     header.innerText = "SPEAKERS";
-    const refreshBtn = this._btn("↻", "Rediscover", () =>
+    const refreshBtn = this._btn(this._icon("refresh"), "Rediscover", () =>
       this.sendSocketNotification("SONOS_REDISCOVER"));
     refreshBtn.className = "ssw-btn ssw-btn-refresh";
     header.appendChild(refreshBtn);
@@ -227,7 +297,7 @@ Module.register("MMM-SpotifySonos", {
       const canUngroup = isGrouped;
       const groupEnabled = canGroup || canUngroup;
 
-      const groupBtn = this._btn("&",
+      const groupBtn = this._btn(this._icon("group"),
         isGrouped ? "Remove from group" : "Add to active group",
         (e) => {
           e.stopPropagation();
@@ -254,12 +324,12 @@ Module.register("MMM-SpotifySonos", {
       const volRow = document.createElement("div");
       volRow.className = "ssw-vol-row";
 
-      const volDown = this._btn("−", "Volume down", () =>
+      const volDown = this._btn(this._icon("volDown"), "Volume down", () =>
         this.sendSocketNotification("SONOS_VOL", { groupId: group.id, dir: "down" }));
       volDown.className = "ssw-btn ssw-btn-vol" + (!volEnabled ? " disabled" : "");
       if (!volEnabled) volDown.disabled = true;
 
-      const volUp = this._btn("+", "Volume up", () =>
+      const volUp = this._btn(this._icon("volUp"), "Volume up", () =>
         this.sendSocketNotification("SONOS_VOL", { groupId: group.id, dir: "up" }));
       volUp.className = "ssw-btn ssw-btn-vol" + (!volEnabled ? " disabled" : "");
       if (!volEnabled) volUp.disabled = true;
@@ -291,7 +361,7 @@ Module.register("MMM-SpotifySonos", {
         ? `url(${this.track.albumArt})` : "";
       coverEl.className = "ssw-cover" + (this.isPlaying ? " playing" : "");
     }
-    if (playBtn) playBtn.innerHTML = this.isPlaying ? "⏸" : "▶";
+    if (playBtn) playBtn.innerHTML = this._icon(this.isPlaying ? "pause" : "play");
     const progWrap = document.getElementById("ssw-prog-wrap");
     if (progWrap) progWrap.style.display = this.durationMs > 0 ? "" : "none";
     const totalEl  = document.getElementById("ssw-time-total");
@@ -351,6 +421,37 @@ Module.register("MMM-SpotifySonos", {
   },
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+
+  _icon(key) {
+    const defaults = this.config.materialIcons ? {
+      prev:      "skip_previous",
+      play:      "play_arrow",
+      pause:     "pause",
+      next:      "skip_next",
+      playlists: "queue_music",
+      speaker:   "volume_up",
+      refresh:   "refresh",
+      group:     "hub",
+      volDown:   "remove",
+      volUp:     "add"
+    } : {
+      prev:      "⏮",
+      play:      "▶",
+      pause:     "⏸",
+      next:      "⏭",
+      playlists: "♫",
+      speaker:   "🔊",
+      refresh:   "↻",
+      group:     "&",
+      volDown:   "−",
+      volUp:     "+"
+    };
+    const label = this.config.icons[key] !== undefined ? this.config.icons[key] : defaults[key];
+    return this.config.materialIcons
+      ? `<span class="material-icons">${label}</span>`
+      : label;
+  },
+
   _btn(label, title, onClick) {
     const b = document.createElement("button");
     b.className = "ssw-btn";
@@ -404,6 +505,11 @@ Module.register("MMM-SpotifySonos", {
         if (payload.isPlaying     !== undefined) this.isPlaying   = payload.isPlaying;
         this._updateTrackInfo();
         this._updateActiveHighlight();
+        break;
+
+      case "PLAYLISTS_RECEIVED":
+        this.playlists = payload;
+        if (this.showPlaylists) this.updateDom();
         break;
 
       case "ERROR":

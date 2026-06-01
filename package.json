@@ -9,10 +9,7 @@
     "deploy":  "bash deploy.sh",
     "prepare": "git config core.hooksPath .githooks"
   },
-  "dependencies": {
-    "node-fetch": "^2.6.7"
-  },
-  "keywords": ["MagicMirror", "Spotify", "Sonos"],
+  "keywords": ["MagicMirror", "MagicMirror2", "Spotify", "Sonos", "music", "player", "smart-home", "UPnP"],
   "engines": {
     "node": ">=18.0.0"
   },
