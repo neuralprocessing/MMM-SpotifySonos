@@ -1,6 +1,6 @@
 # MMM-SpotifySonos
 
-A combined MagicMirror² module for **Spotify** (player, cover art, controls) and **Sonos** (speaker selection, volume, multi-room grouping) — all in one. No MMM-Spotify, no node-sonos-http-api required.
+A combined MagicMirror² module for **Spotify** (player, cover art, controls) and **Sonos** (speaker selection, volume, multi-room grouping) — all in one.
 
 ---
 
