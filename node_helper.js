@@ -306,13 +306,38 @@ module.exports = NodeHelper.create({
 
       case "PLAY_PLAYLIST": {
         const { playlistUri } = payload;
-        let deviceId = null;
+        let deviceId   = null;
+        let sonosGroup = null;
+
         if (this._activeGroupId) {
           const g = this._findGroup(this._activeGroupId);
-          if (g) deviceId = await this._spotifyDeviceId(g.name);
+          if (g) {
+            deviceId = await this._spotifyDeviceId(g.name);
+            if (!deviceId) sonosGroup = g;
+          }
         }
-        if (!deviceId) deviceId = await this._spotifyActiveDeviceId();
-        await this._spotifyPlayContext(playlistUri, deviceId);
+
+        if (!deviceId) deviceId = await this._spotifyAnyDeviceId();
+
+        console.log(`[MMM-SpotifySonos] Playing playlist ${playlistUri}` +
+          (deviceId ? ` on device ${deviceId}` : " (no device — Spotify picks)"));
+        const ok = await this._spotifyPlayContext(playlistUri, deviceId);
+
+        // Computer now has the new playlist. UPnP-play the Sonos so it re-attaches
+        // to the computer's stream via its cached Spotify Connect (VLI) URI.
+        // First attempt after 300 ms; retry every 1 s until the Sonos confirms play.
+        if (ok && sonosGroup) {
+          const tryResume = async (attempt) => {
+            const res = await Sonos.sonosPlay(sonosGroup.coordinator.ip, sonosGroup.coordinator.port);
+            if (res && res.status === 200) {
+              console.log(`[MMM-SpotifySonos] "${sonosGroup.name}" resumed (attempt ${attempt + 1})`);
+              return;
+            }
+            console.log(`[MMM-SpotifySonos] "${sonosGroup.name}" not ready yet (attempt ${attempt + 1}, status ${res && res.status}) — retrying in 1 s`);
+            setTimeout(() => tryResume(attempt + 1), 500);
+          };
+          setTimeout(() => tryResume(0), 500);
+        }
         break;
       }
 
@@ -608,6 +633,23 @@ module.exports = NodeHelper.create({
     }
   },
 
+  async _spotifyAnyDeviceId() {
+    const token = await this._getToken();
+    if (!token) return null;
+    try {
+      const res = await _fetch("https://api.spotify.com/v1/me/player/devices", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return null;
+      const { devices = [] } = await res.json();
+      if (!devices.length) return null;
+      const active = devices.find(d => d.is_active);
+      const pick   = active || devices[0];
+      console.log(`[MMM-SpotifySonos] Explicit device fallback: "${pick.name}" (active: ${!!active})`);
+      return pick.id;
+    } catch (e) { return null; }
+  },
+
   async _spotifyTransfer(deviceId, play = true) {
     const token = await this._getToken();
     if (!token || !deviceId) return false;
@@ -623,22 +665,6 @@ module.exports = NodeHelper.create({
       return false;
     }
   },
-
-  // Get the currently active Spotify device id (may be null if nothing playing)
-  async _spotifyActiveDeviceId() {
-    const token = await this._getToken();
-    if (!token) return null;
-    try {
-      const res = await _fetch("https://api.spotify.com/v1/me/player", {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.status === 204 || !res.ok) return null;
-      const data = await res.json();
-      return data && data.device ? data.device.id : null;
-    } catch (e) { return null; }
-  },
-
-
 
   // ── Spotify ───────────────────────────────────────────────────────────────
   async _spotifyState() {
@@ -709,18 +735,25 @@ module.exports = NodeHelper.create({
 
   async _spotifyPlayContext(contextUri, deviceId) {
     const token = await this._getToken();
-    if (!token) return;
+    if (!token) return false;
     try {
       const url = deviceId
         ? `https://api.spotify.com/v1/me/player/play?device_id=${encodeURIComponent(deviceId)}`
         : "https://api.spotify.com/v1/me/player/play";
-      await _fetch(url, {
+      const res = await _fetch(url, {
         method:  "PUT",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body:    JSON.stringify({ context_uri: contextUri })
       });
+      if (res.ok || res.status === 204) return true;
+      const data = await res.json().catch(() => ({}));
+      const msg  = (data.error && data.error.message) || `Spotify error ${res.status}`;
+      console.error(`[MMM-SpotifySonos] Play context failed (${res.status}): ${msg}`);
+      this.sendSocketNotification("ERROR", msg);
+      return false;
     } catch (e) {
       console.error("[MMM-SpotifySonos] Play context error:", e.message);
+      return false;
     }
   },
 

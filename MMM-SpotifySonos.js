@@ -30,6 +30,8 @@ Module.register("MMM-SpotifySonos", {
   showPlaylists:  false,
   playlists:      [],
   _progressTimer: null,
+  _errorMsg:      null,
+  _errorTimer:    null,
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   start() {
@@ -158,6 +160,7 @@ Module.register("MMM-SpotifySonos", {
 
     if (this.showPlaylists) wrap.appendChild(this._buildPlaylistPanel());
     if (this.showSonos)     wrap.appendChild(this._buildSonosPanel());
+    if (this._errorMsg)     wrap.appendChild(this._buildToast(this._errorMsg));
 
     return wrap;
   },
@@ -461,6 +464,24 @@ Module.register("MMM-SpotifySonos", {
     return b;
   },
 
+  _buildToast(msg) {
+    const toast = document.createElement("div");
+    toast.className = "ssw-toast";
+    toast.innerText = msg;
+    return toast;
+  },
+
+  _showError(msg) {
+    this._errorMsg = msg;
+    if (this._errorTimer) clearTimeout(this._errorTimer);
+    this._errorTimer = setTimeout(() => {
+      this._errorMsg = null;
+      this._errorTimer = null;
+      this.updateDom();
+    }, 5000);
+    this.updateDom();
+  },
+
   _fmtTime(ms) {
     const s = Math.floor(ms / 1000);
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -514,6 +535,7 @@ Module.register("MMM-SpotifySonos", {
 
       case "ERROR":
         Log.error("MMM-SpotifySonos:", payload);
+        this._showError(payload);
         break;
     }
   }

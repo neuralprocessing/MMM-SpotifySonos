@@ -21,7 +21,7 @@
 /* display:inline-flex lets MagicMirror's text-align:center center this module.
    Never use position, float, or fixed width here — those break MMM's layout. */
 .ssw {
-  font-family: var(--ss-font);
+  font-family: var(--ss-font), sans-serif;
   color: var(--ss-white);
   display: inline-flex;
   flex-direction: column;
@@ -118,7 +118,7 @@
 .ssw-time-row {
   display: flex;
   justify-content: space-between;
-  font-family: var(--ss-mono);
+  font-family: var(--ss-mono), monospace;
   font-size: 10px;
   color: var(--ss-dim);
   margin-top: 3px;
@@ -253,6 +253,8 @@
 
 .ssw-zone-row:last-child {
   border-bottom: none;
+  border-radius: 0 0 var(--ss-radius) var(--ss-radius);
+  padding-bottom: 18px;
 }
 
 .ssw-zone-row.active {
@@ -291,7 +293,7 @@
   height: 7px;
   border-radius: 50%;
   background: transparent;
-  border: 1.5px solid var(--ss-dim);
+  border: 2px solid var(--ss-dim);
   margin-right: 10px;
   flex-shrink: 0;
   transition: background 0.2s, border-color 0.2s;
@@ -329,7 +331,7 @@
 .ssw-btn-vol:active { opacity: 1; transform: scale(0.9); }
 
 .ssw-group-badge {
-  font-family: var(--ss-mono);
+  font-family: var(--ss-mono), monospace;
   font-size: 10px;
   background: rgba(29,185,84,0.15);
   color: var(--ss-green);
@@ -361,7 +363,7 @@
   min-height: 28px;
   border-radius: 6px;
   opacity: 0.35;
-  font-family: var(--ss-mono);
+  font-family: var(--ss-mono), monospace;
   transition: opacity 0.2s, background 0.15s, border-color 0.15s;
 }
 
@@ -401,7 +403,7 @@
 .ssw-group-with {
   font-size: 9px;
   color: rgba(29,185,84,0.6);
-  font-family: var(--ss-mono);
+  font-family: var(--ss-mono), monospace;
   white-space: nowrap;
   flex-shrink: 0;
   margin-left: 2px;
@@ -453,6 +455,7 @@
 
 .ssw-playlist-row:last-child {
   border-bottom: none;
+  border-radius: 0 0 var(--ss-radius) var(--ss-radius);
 }
 
 .ssw-playlist-row:active {
@@ -472,6 +475,24 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* ── Error Toast ─────────────────────────────────────────── */
+.ssw-toast {
+  background: rgba(220, 53, 53, 0.15);
+  border: 1px solid rgba(220, 53, 53, 0.45);
+  color: #ff6b6b;
+  border-radius: var(--ss-radius);
+  padding: 10px 14px;
+  font-size: 12px;
+  line-height: 1.4;
+  animation: ssSlideIn 0.2s ease;
+}
+
+.ssw--bw .ssw-toast {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 /* ── Big Cover mode (big_cover: true) ────────────────────── */
